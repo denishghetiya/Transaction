@@ -1,0 +1,331 @@
+﻿@model Transaction.DBContext.Wallet
+
+@{
+    Layout = "_Layout";
+}
+<div>
+    <h2>Welcome, @ViewBag.Username! 
+        <a style="float: right;" href="@Url.Action("Logout", "Account")" class="btn btn-danger">Logout</a>
+    </h2>
+</div><br />
+
+@if (ViewBag.CurrencyCode == "No Wallet")
+{
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#walletModal">Add Wallet</button>
+}
+else
+{
+    @foreach (var wallet in ViewBag.UserWallet)
+    {
+        <div class="card">
+            <h7>Your Wallet Balance:
+            <strong>@wallet.Currency.CurrencyCode : @wallet.Balance </strong>
+            </h7>
+        </div>
+    }
+    <br />
+    <div>
+        <button style="float: right;" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#withdrawModal">Withdrow</button>
+        <button style="float: right;" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addBalanceModal">Add Balance</button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#walletModal">Add Wallet</button>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#sendMoneyModal">Send Money</button>
+    </div>
+    <br />
+    <h3>Transaction History</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>UserID</th>
+                <th>Currency</th>
+                <th>Transaction Type</th>
+                <th>Amount</th>
+                <th>Balance After Transaction</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ViewBag.Transactions.Count > 0)
+            {
+                @foreach (var transaction in ViewBag.Transactions)
+                {
+                    <tr>
+                        <td>@transaction.UserId</td>
+                        <td>@transaction.Currency.CurrencyCode</td>
+                        <td>@transaction.TransactionType</td>
+                        <td>@transaction.TransferAmount</td>
+                        <td>@transaction.Balance</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="5">No transactions found.</td></tr>
+            }
+        </tbody>
+    </table>
+    <br />
+    <h3>All Wallets</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Wallet ID</th>
+                <th>Username</th>
+                <th>Wallet Code</th>
+                <th>Currency</th>
+                <th>Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ViewBag.AllWallets != null && ViewBag.AllWallets.Count > 0)
+            {
+                @foreach (var wallet in ViewBag.AllWallets)
+                {
+                    <tr>
+                        <td>@wallet.WalletId</td>
+                        <td>@wallet.User.Username</td>
+                        <td>@wallet.WalletCode</td>
+                        <td>@wallet.Currency.CurrencyCode</td>
+                        <td>@wallet.Balance</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5">No wallets found.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}
+
+<!-- Wallet Creation Modal -->
+<div class="modal fade" id="walletModal" tabindex="-1" aria-labelledby="walletModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="walletModalLabel">Create Wallet</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="CreateWallet" method="post">
+                    <div class="mb-3">
+                        <label for="CurrencyId" class="form-label">Currency</label>
+                        <select class="form-control" id="CurrencyId" name="CurrencyId" required>
+                            <option value="">Select Currency</option>
+                            @foreach (var currency in ViewBag.AvailableCurrencies)
+                            {
+                                <option value="@currency.CurrencyId">@currency.CurrencyCode</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Balance" class="form-label">Initial Balance</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="Balance" name="Balance" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Create Wallet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Balance Modal -->
+<div class="modal fade" id="addBalanceModal" tabindex="-1" aria-labelledby="addBalanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBalanceModalLabel">Add Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="AddBalance" method="post">
+                    <div class="mb-3">
+                        <label for="WalletId" class="form-label">Select Wallet</label>
+                        <select class="form-control" id="WalletId" name="WalletId" required>
+                            <option value="">Select Wallet</option>
+                            @if (ViewBag.UserWallet != null){
+                            @foreach (var wallet in ViewBag.UserWallet)
+                            {
+                                <option value="@wallet.WalletId">@wallet.Currency.CurrencyCode (WalletCode: @wallet.WalletCode)</option>
+                            }}
+                            else
+                            {
+                                <option value="">No wallets available</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="Amount" class="form-label">Amount to Add</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="Amount" name="Amount" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Balance</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Withdraw Balance Modal -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="withdrowModalLabel">Withdraw To Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="WithdrawBalance" method="post">
+                    <div class="mb-3">
+                        <label for="WalletId" class="form-label">Select Wallet</label>
+                        <select class="form-control" id="WalletId" name="WalletId" required>
+                            <option value="">Select Wallet</option>
+                            @if (ViewBag.UserWallet != null){
+                            @foreach (var wallet in ViewBag.UserWallet)
+                            {
+                                <option value="@wallet.WalletId">@wallet.Currency.CurrencyCode (WalletCode: @wallet.WalletCode)</option>
+                            }}
+                            else
+                            {
+                            <option value="">No wallets available</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Amount" class="form-label">Withdraw Amount</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="Amount" name="Amount" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Withdraw</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Send Money Modal -->
+<div class="modal fade" id="sendMoneyModal" tabindex="-1" aria-labelledby="sendMoneyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sendMoneyModalLabel">Send Money</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="SendMoney" method="post">
+                    <div class="mb-3">
+                        <label for="SenderWalletId" class="form-label">Select Wallet</label>
+                        <select class="form-control" id="SenderWalletId" name="SenderWalletId" required>
+                            <option value="">Select Wallet</option>
+                            @if (ViewBag.UserWallet != null){
+                            @foreach (var wallet in ViewBag.UserWallet)
+                            {
+                                <option value="@wallet.WalletId">
+                                    @wallet.Currency.CurrencyCode (WalletCode: @wallet.WalletCode)
+                                </option>
+                            }}
+                            else
+                            {
+                                <option value="">No wallets available</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ReceiverWalletCode" class="form-label">Receiver's Wallet Code</label>
+                        <input type="text" class="form-control" id="ReceiverWalletCode" name="ReceiverWalletCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="TransferAmount" class="form-label">Amount</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="TransferAmount" name="TransferAmount" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning">Send Money</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toastr Notifications -->
+<script>
+    $(document).ready(function () {
+    @if (TempData["Error"] != null)
+    {
+        <text>toastr.error("@TempData["Error"]");</text>
+    }
+    });
+</script>
+
+@* <!-- Add Balance Modal -->
+<div class="modal fade" id="addBalanceModal" tabindex="-1" aria-labelledby="addBalanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBalanceModalLabel">Add Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="AddBalance" method="post">
+                    <div class="mb-3">
+                        <label for="Amount" class="form-label">Amount to Add</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="Amount" name="Amount" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Balance</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> *@
+
+@* <!-- Withdraw Balance Modal -->
+<div class="modal fade" id="withdrowModal" tabindex="-1" aria-labelledby="withdrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="withdrowModalLabel">Withdrow To Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Display available balance -->
+                <div class="alert alert-info">
+                    Available Balance: <strong>@ViewBag.WalletBalance</strong>
+                </div>
+
+                <form asp-controller="Wallet" asp-action="WithdrawBalance" method="post">
+                    <div class="mb-3">
+                        <label for="Amount" class="form-label">Withdrow Amount</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');"
+                               step="0.01" class="form-control" id="Amount" name="Amount" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Withdrow</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> *@
+
+@* <!-- Send Money Modal -->
+<div class="modal fade" id="sendMoneyModal" tabindex="-1" aria-labelledby="sendMoneyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sendMoneyModalLabel">Send Money</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Wallet" asp-action="SendMoney" method="post">
+                    <div class="mb-3">
+                        <label for="ReceiverWalletCode" class="form-label">Receiver's Wallet Code</label>
+                        <input type="text" class="form-control" id="ReceiverWalletCode" name="ReceiverWalletCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="TransferAmount" class="form-label">Amount</label>
+                        <input oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" step="0.01" class="form-control" id="TransferAmount" name="TransferAmount" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Send Money</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> *@
